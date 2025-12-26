@@ -1,0 +1,21 @@
+# Binaries
+/server/bin/
+/server/main
+
+# Dependencies
+/server/vendor/
+/client/node_modules/
+
+# Environment Variables
+.env
+
+# IDEs
+.vscode/
+.idea/
+.DS_Store
+
+# Build Artifacts
+/client/dist/
+
+# Logs
+*.log

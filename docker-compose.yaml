@@ -1,0 +1,51 @@
+services:
+  # Database Service
+  db:
+    image: postgres:15-alpine
+    container_name: kahoot-db
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_DB: kahoot_quiz
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # Server Service
+  server:
+    build: 
+      context: ./server
+      dockerfile: Dockerfile
+    container_name: kahoot-server
+    depends_on:
+      db:
+        condition: service_healthy
+    ports:
+      - "8080:8080"
+    environment:
+      - PORT=8080
+      - DATABASE_URL=host=db user=postgres password=postgres dbname=kahoot_quiz port=5432 sslmode=disable
+      - JWT_SECRET=your_docker_secret
+      - CLIENT_URL=http://localhost:5173 # Or http://localhost if using client container
+    restart: on-failure
+
+  # Client Service
+  client:
+    build:
+      context: ./client
+      dockerfile: Dockerfile
+    container_name: kahoot-client
+    depends_on:
+      - server
+    ports:
+      - "5173:80" # Mapping local 5173 to nginx 80 for consistent access if desired, or 80:80
+    restart: on-failure
+
+volumes:
+  postgres_data:
