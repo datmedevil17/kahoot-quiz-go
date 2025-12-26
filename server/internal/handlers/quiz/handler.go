@@ -3,13 +3,20 @@ package quiz
 import (
 	"net/http"
 
-	"github.com/datmedevil17/kahoot-quiz-go/internal/database"
-	"github.com/datmedevil17/kahoot-quiz-go/internal/models"
+	"github.com/datmedevil17/kahoot-quiz-go/internal/services/quiz"
 	"github.com/datmedevil17/kahoot-quiz-go/internal/utils"
 	"github.com/gin-gonic/gin"
 )
 
-func CreateQuiz(c *gin.Context) {
+type Handler struct {
+	service *quiz.Service
+}
+
+func NewHandler(service *quiz.Service) *Handler {
+	return &Handler{service: service}
+}
+
+func (h *Handler) CreateQuiz(c *gin.Context) {
 	var req CreateQuizRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
 		utils.ErrorResponse(c, 400, err.Error())
@@ -17,27 +24,20 @@ func CreateQuiz(c *gin.Context) {
 	}
 	userId, _ := c.Get("userID")
 
-	quiz := models.Quiz{
-		Title:       req.Title,
-		Description: req.Description,
-		CreatedBy:   uint(userId.(uint)),
-	}
-
-	if err := database.DB.Create(&quiz).Error; err != nil {
+	createdQuiz, err := h.service.CreateQuiz(req.Title, req.Description, uint(userId.(uint)))
+	if err != nil {
 		utils.ErrorResponse(c, 500, "Failed to create quiz")
 		return
 	}
 
-	utils.SuccessResponse(c, http.StatusCreated, "Quiz created successfully", gin.H{"quiz": quiz})
+	utils.SuccessResponse(c, http.StatusCreated, "Quiz created successfully", gin.H{"quiz": createdQuiz})
 }
 
-func GetMyQuizzes(c *gin.Context) {
+func (h *Handler) GetMyQuizzes(c *gin.Context) {
 	userId, _ := c.Get("userID")
 
-	var quizzes []models.Quiz
-	if err := database.DB.
-		Where("created_by = ?", userId).
-		Find(&quizzes).Error; err != nil {
+	quizzes, err := h.service.GetQuizzesByUserID(uint(userId.(uint)))
+	if err != nil {
 		utils.ErrorResponse(c, 500, "Failed to fetch quizzes")
 		return
 	}
@@ -45,13 +45,11 @@ func GetMyQuizzes(c *gin.Context) {
 	utils.SuccessResponse(c, 200, "Quizzes fetched successfully", gin.H{"quizzes": quizzes})
 }
 
-func GetQuizByID(c *gin.Context) {
+func (h *Handler) GetQuizByID(c *gin.Context) {
 	quizID := c.Param("id")
 
-	var quiz models.Quiz
-	if err := database.DB.
-		Preload("Questions.Options").
-		First(&quiz, "id = ?", quizID).Error; err != nil {
+	quiz, err := h.service.GetQuizByID(quizID)
+	if err != nil {
 		utils.ErrorResponse(c, 404, "Quiz not found")
 		return
 	}

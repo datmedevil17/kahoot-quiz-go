@@ -8,11 +8,19 @@ import (
 )
 
 func sendNextQuestion(room *Room) {
+	room.Mutex.Lock()
+	defer room.Mutex.Unlock()
+
 	// Check if we've run out of questions
 	if room.CurrentQ >= len(room.Questions) {
+		// Broadcast game over (IO inside lock, acceptable for this scale to ensure ordering)
 		broadcast(room, "GAME_OVER", room.Scores)
 		room.Started = false
 
+		// Persistence should be outside lock if possible, or inside if it's fast.
+		// persistGameResults db call might be slow.
+		// Spawning goroutine is fine, but we need to ensure room state doesn't change strangely in between.
+		// Passed room pointer is fine.
 		go func() {
 			persistGameResults(room)
 			if room.Hub != nil {
@@ -25,9 +33,7 @@ func sendNextQuestion(room *Room) {
 	q := room.Questions[room.CurrentQ]
 
 	// Reset answers for the new question
-	room.Mutex.Lock()
 	room.Answers = make(map[string]int)
-	room.Mutex.Unlock()
 
 	options := make([]string, len(q.Options))
 	for i, opt := range q.Options {

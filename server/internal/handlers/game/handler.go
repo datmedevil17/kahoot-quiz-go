@@ -4,20 +4,16 @@ import (
 	"fmt"
 	"net/http"
 
-	"github.com/datmedevil17/kahoot-quiz-go/internal/services/game"
 	"github.com/datmedevil17/kahoot-quiz-go/internal/utils"
 	"github.com/datmedevil17/kahoot-quiz-go/internal/ws"
 	"github.com/gin-gonic/gin"
 )
 
 type Handler struct {
-	service *game.Service
 }
 
-func NewHandler(service *game.Service) *Handler {
-	return &Handler{
-		service: service,
-	}
+func NewHandler() *Handler {
+	return &Handler{}
 }
 
 func (h *Handler) CreateGame(hub *ws.Hub) gin.HandlerFunc {

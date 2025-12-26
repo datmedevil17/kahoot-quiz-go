@@ -1,20 +1,29 @@
 package question
 
 import (
-	"strconv"
-
-	"github.com/datmedevil17/kahoot-quiz-go/internal/database"
-	"github.com/datmedevil17/kahoot-quiz-go/internal/models"
+	"github.com/datmedevil17/kahoot-quiz-go/internal/services/question"
+	"github.com/datmedevil17/kahoot-quiz-go/internal/services/quiz"
 	"github.com/datmedevil17/kahoot-quiz-go/internal/utils"
 	"github.com/gin-gonic/gin"
 )
 
-func AddQuestion(c *gin.Context) {
+type Handler struct {
+	questionService *question.Service
+	quizService     *quiz.Service
+}
+
+func NewHandler(questionService *question.Service, quizService *quiz.Service) *Handler {
+	return &Handler{
+		questionService: questionService,
+		quizService:     quizService,
+	}
+}
+
+func (h *Handler) AddQuestion(c *gin.Context) {
 	quizID := c.Param("quizId")
 	userID, _ := c.Get("userID")
 
-	_, err := utils.ValidateQuizOwnership(quizID, uint(userID.(uint)))
-	if err != nil {
+	if err := h.quizService.ValidateOwnership(quizID, uint(userID.(uint))); err != nil {
 		utils.ErrorResponse(c, 403, err.Error())
 		return
 	}
@@ -30,45 +39,23 @@ func AddQuestion(c *gin.Context) {
 		return
 	}
 
-	question := models.Question{
-		QuizID:    quizID,
-		Text:      req.Text,
-		Answer:    req.Answer,
-		TimeLimit: req.TimeLimit,
-	}
-
-	if err := database.DB.Create(&question).Error; err != nil {
+	createdQuestion, options, err := h.questionService.CreateQuestion(quizID, req.Text, req.Answer, req.TimeLimit, req.Options)
+	if err != nil {
 		utils.ErrorResponse(c, 500, "Failed to create question")
 		return
 	}
 
-	var options []models.Option
-	for _, opt := range req.Options {
-		options = append(options, models.Option{
-			QuestionID: strconv.FormatUint(uint64(question.ID), 10),
-			Text:       opt,
-		})
-	}
-
-	if err := database.DB.Create(&options).Error; err != nil {
-		utils.ErrorResponse(c, 500, "Failed to create options")
-		return
-	}
-
 	utils.SuccessResponse(c, 201, "Question created successfully", gin.H{
-		"question": question,
+		"question": createdQuestion,
 		"options":  options,
 	})
 }
 
-func GetQuizQuestions(c *gin.Context) {
+func (h *Handler) GetQuizQuestions(c *gin.Context) {
 	quizID := c.Param("quizId")
 
-	var questions []models.Question
-	if err := database.DB.
-		Where("quiz_id = ?", quizID).
-		Preload("Options").
-		Find(&questions).Error; err != nil {
+	questions, err := h.questionService.GetQuestionsByQuizID(quizID)
+	if err != nil {
 		utils.ErrorResponse(c, 500, "Failed to fetch questions")
 		return
 	}

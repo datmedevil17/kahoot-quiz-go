@@ -2,6 +2,15 @@ package api
 
 import (
 	"github.com/datmedevil17/kahoot-quiz-go/internal/config"
+	"github.com/datmedevil17/kahoot-quiz-go/internal/database"
+	"github.com/datmedevil17/kahoot-quiz-go/internal/handlers/game"
+	"github.com/datmedevil17/kahoot-quiz-go/internal/handlers/question"
+	"github.com/datmedevil17/kahoot-quiz-go/internal/handlers/quiz"
+	"github.com/datmedevil17/kahoot-quiz-go/internal/handlers/user"
+	"github.com/datmedevil17/kahoot-quiz-go/internal/middleware"
+	questionService "github.com/datmedevil17/kahoot-quiz-go/internal/services/question"
+	quizService "github.com/datmedevil17/kahoot-quiz-go/internal/services/quiz"
+	userService "github.com/datmedevil17/kahoot-quiz-go/internal/services/user"
 	"github.com/datmedevil17/kahoot-quiz-go/internal/ws"
 	"github.com/gin-gonic/gin"
 )
@@ -9,24 +18,53 @@ import (
 func SetupRouter(cfg *config.Config, hub *ws.Hub) *gin.Engine {
 	r := gin.Default()
 
-	// ... other routes ...
+	// Initialize Services
+	db := database.GetDB()
+	userSvc := userService.NewService(db)
+	quizSvc := quizService.NewService(db)
+	questionSvc := questionService.NewService(db)
 
-	// Protected routes
+	// Initialize Handlers
+	userHandler := user.NewHandler(userSvc, cfg.JWTSecret)
+	gameHandler := game.NewHandler()
+	quizHandler := quiz.NewHandler(quizSvc)
+	questionHandler := question.NewHandler(questionSvc, quizSvc)
+
+	// Auth Routes
+	auth := r.Group("/auth")
+	{
+		auth.POST("/signup", userHandler.SignUp)
+		auth.POST("/login", userHandler.SignIn)
+	}
+
+	// User Routes
+	users := r.Group("/users")
+	{
+		users.GET("/:id", userHandler.GetUserById)
+	}
+
+	// Protected Routes
 	protected := r.Group("/api/v1")
-	// Middleware for auth would go here, e.g. protected.Use(AuthMiddleware(cfg.JWTSecret))
+	protected.Use(middleware.AuthMiddleware(cfg.JWTSecret))
+	{
+		// User
+		protected.GET("/users/me", userHandler.GetCurrentUserId)
 
-	// WebSocket endpoint
-	// Note: WS usually needs to be accessible, but auth is handled inside HandleWS via query param
-	// So it might not need the middleware if the middleware checks headers.
-	// The user snippet said: protected.GET("/ws", ws.HandleWS(hub, jwtSecret))
-	// If 'protected' has middleware that checks Authorization header, WS connecting from browser
-	// (standard JS WebSocket) cannot set headers easily.
-	// Usually WS uses query param 'token'.
-	// So maybe 'protected' here just means "routes that require auth logic" but HandleWS does it manually?
-	// Or maybe the user has a middleware that checks query params too.
-	// For now, I will assume HandleWS does the check (as I implemented) and mount it.
+		// Quiz
+		protected.POST("/quizzes", quizHandler.CreateQuiz)
+		protected.GET("/quizzes", quizHandler.GetMyQuizzes)
+		protected.GET("/quizzes/:id", quizHandler.GetQuizByID)
 
-	protected.GET("/ws", ws.HandleWS(hub, cfg.JWTSecret))
+		// Questions
+		protected.POST("/quizzes/:quizId/questions", questionHandler.AddQuestion)
+		protected.GET("/quizzes/:quizId/questions", questionHandler.GetQuizQuestions)
+
+		// Game
+		protected.POST("/games", gameHandler.CreateGame(hub))
+
+		// WS
+		protected.GET("/ws", ws.HandleWS(hub, cfg.JWTSecret))
+	}
 
 	return r
 }
