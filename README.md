@@ -6,19 +6,19 @@ A real-time multiplayer quiz application inspired by Kahoot. Built with a Go (Gi
 
 ```mermaid
 graph TD
-    Client[Client (Svelte)] -->|HTTP/REST| API[API Gateway (Gin Router)]
-    Client -->|WebSocket| WS[WebSocket Hub]
+    Client["Client (Svelte)"] -->|HTTP/REST| API["API Gateway (Gin Router)"]
+    Client -->|WebSocket| WS["WebSocket Hub"]
     
     subgraph Server
-        API --> Auth[Auth Middleware]
-        API --> UserSvc[User Service]
-        API --> QuizSvc[Quiz Service]
-        API --> GameSvc[Game Service]
+        API --> Auth["Auth Middleware"]
+        API --> UserSvc["User Service"]
+        API --> QuizSvc["Quiz Service"]
+        API --> GameSvc["Game Service"]
         
-        WS --> Room[Game Room]
-        Room --> GameLogic[Game Logic]
+        WS --> Room["Game Room"]
+        Room --> GameLogic["Game Logic"]
         
-        GameLogic --> DB[(PostgreSQL)]
+        GameLogic --> DB[("PostgreSQL")]
         UserSvc --> DB
         QuizSvc --> DB
     end
