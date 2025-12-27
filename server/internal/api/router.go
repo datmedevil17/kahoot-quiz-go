@@ -19,6 +19,9 @@ import (
 func SetupRouter(cfg *config.Config, hub *ws.Hub) *gin.Engine {
 	r := gin.Default()
 
+	// CORS Middleware
+	r.Use(middleware.CORSMiddleware())
+
 	// Initialize Services
 	db := database.GetDB()
 	userSvc := userService.NewService(db)

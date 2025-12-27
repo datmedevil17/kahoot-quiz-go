@@ -1,47 +1,126 @@
 <script lang="ts">
-  import svelteLogo from './assets/svelte.svg'
-  import viteLogo from '/vite.svg'
-  import Counter from './lib/Counter.svelte'
+  import { onMount } from "svelte";
+  import { user } from "./lib/stores/user";
+
+  import Login from "./routes/Login.svelte";
+  import Signup from "./routes/Signup.svelte";
+  import Dashboard from "./routes/Dashboard.svelte";
+  import CreateQuiz from "./routes/CreateQuiz.svelte";
+  import GameLobby from "./routes/GameLobby.svelte";
+  import Game from "./routes/Game.svelte";
+
+  let currentRoute = "#";
+  let pinInput = "";
+
+  function hashchange() {
+    currentRoute = window.location.hash;
+  }
+
+  function enterGame() {
+    if (pinInput) {
+      window.location.hash = `#play/lobby/${pinInput}`;
+    }
+  }
+
+  onMount(() => {
+    hashchange();
+    window.addEventListener("hashchange", hashchange);
+    return () => {
+      window.removeEventListener("hashchange", hashchange);
+    };
+  });
 </script>
 
 <main>
-  <div>
-    <a href="https://vite.dev" target="_blank" rel="noreferrer">
-      <img src={viteLogo} class="logo" alt="Vite Logo" />
-    </a>
-    <a href="https://svelte.dev" target="_blank" rel="noreferrer">
-      <img src={svelteLogo} class="logo svelte" alt="Svelte Logo" />
-    </a>
-  </div>
-  <h1>Vite + Svelte</h1>
+  <nav>
+    <a href="/">Home</a>
+    {#if $user}
+      <span>Welcome, {$user.name || $user.email}</span>
+      <a href="#dashboard">Dashboard</a>
+      <button
+        on:click={() => {
+          user.set(null);
+          window.location.hash = "#";
+        }}>Logout</button
+      >
+    {:else}
+      <a href="#login">Login</a>
+      <a href="#signup">Sign Up</a>
+    {/if}
+  </nav>
 
-  <div class="card">
-    <Counter />
-  </div>
-
-  <p>
-    Check out <a href="https://github.com/sveltejs/kit#readme" target="_blank" rel="noreferrer">SvelteKit</a>, the official Svelte app framework powered by Vite!
-  </p>
-
-  <p class="read-the-docs">
-    Click on the Vite and Svelte logos to learn more
-  </p>
+  {#if currentRoute === "#login"}
+    <Login />
+  {:else if currentRoute === "#signup"}
+    <Signup />
+  {:else if currentRoute === "#dashboard"}
+    <Dashboard />
+  {:else if currentRoute === "#create-quiz"}
+    <CreateQuiz />
+  {:else if currentRoute.startsWith("#host/lobby/")}
+    <GameLobby pin={currentRoute.split("/")[2].split("?")[0]} isHost={true} />
+  {:else if currentRoute.startsWith("#play/lobby/")}
+    <!-- Matches #play/lobby/12345 -->
+    <GameLobby
+      pin={currentRoute.split("/")[3] || currentRoute.split("/")[2]}
+      isHost={false}
+    />
+  {:else if currentRoute.startsWith("#game/")}
+    <Game isHost={$user?.role === "host" || $user?.role === "Host"} />
+  {:else}
+    <!-- Home -->
+    <h1 class="title">Welcome to Kahoot Clone</h1>
+    <div class="hero fa-center">
+      <input
+        type="text"
+        placeholder="Game PIN"
+        class="pin-input"
+        bind:value={pinInput}
+      />
+      <button class="enter-btn" on:click={enterGame}>Enter</button>
+    </div>
+  {/if}
 </main>
 
 <style>
-  .logo {
-    height: 6em;
-    padding: 1.5em;
-    will-change: filter;
-    transition: filter 300ms;
+  nav {
+    display: flex;
+    gap: 1rem;
+    padding: 1rem;
+    background: #f4f4f4;
+    align-items: center;
   }
-  .logo:hover {
-    filter: drop-shadow(0 0 2em #646cffaa);
+  .title {
+    text-align: center;
+    margin-top: 3rem;
   }
-  .logo.svelte:hover {
-    filter: drop-shadow(0 0 2em #ff3e00aa);
+  .hero {
+    display: flex;
+    justify-content: center;
+    gap: 1rem;
+    margin-top: 2rem;
   }
-  .read-the-docs {
-    color: #888;
+  .pin-input {
+    padding: 1rem;
+    font-size: 1.2rem;
+    border: 2px solid #ccc;
+    border-radius: 4px;
+  }
+  .enter-btn {
+    padding: 1rem 2rem;
+    background: #333;
+    color: white;
+    border: none;
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 1.2rem;
+  }
+  /* Simple global reset for nice box model */
+  :global(body) {
+    margin: 0;
+    font-family: sans-serif;
+  }
+  :global(*) {
+    box-sizing: border-box;
   }
 </style>
