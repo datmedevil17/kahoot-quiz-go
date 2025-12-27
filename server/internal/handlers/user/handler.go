@@ -80,12 +80,13 @@ func (h *Handler) GetUserById(c *gin.Context) {
 }
 
 func (h *Handler) GetCurrentUserId(c *gin.Context) {
-	userID, err := strconv.ParseUint(c.Param("id"), 10, 32)
-	if err != nil {
-		utils.ErrorResponse(c, http.StatusBadRequest, "Invalid userId")
+	userId, exists := c.Get("userID")
+	if !exists {
+		utils.ErrorResponse(c, http.StatusUnauthorized, "Unauthorized")
 		return
 	}
-	user, err := h.service.GetUserById(uint(userID))
+
+	user, err := h.service.GetUserById(uint(userId.(uint)))
 	if err != nil {
 		utils.ErrorResponse(c, http.StatusNotFound, "User not found")
 		return

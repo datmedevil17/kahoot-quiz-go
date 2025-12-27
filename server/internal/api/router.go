@@ -4,6 +4,7 @@ import (
 	"github.com/datmedevil17/kahoot-quiz-go/internal/config"
 	"github.com/datmedevil17/kahoot-quiz-go/internal/database"
 	"github.com/datmedevil17/kahoot-quiz-go/internal/handlers/game"
+	"github.com/datmedevil17/kahoot-quiz-go/internal/handlers/health"
 	"github.com/datmedevil17/kahoot-quiz-go/internal/handlers/question"
 	"github.com/datmedevil17/kahoot-quiz-go/internal/handlers/quiz"
 	"github.com/datmedevil17/kahoot-quiz-go/internal/handlers/user"
@@ -56,8 +57,8 @@ func SetupRouter(cfg *config.Config, hub *ws.Hub) *gin.Engine {
 		protected.GET("/quizzes/:id", quizHandler.GetQuizByID)
 
 		// Questions
-		protected.POST("/quizzes/:quizId/questions", questionHandler.AddQuestion)
-		protected.GET("/quizzes/:quizId/questions", questionHandler.GetQuizQuestions)
+		protected.POST("/quizzes/:id/questions", questionHandler.AddQuestion)
+		protected.GET("/quizzes/:id/questions", questionHandler.GetQuizQuestions)
 
 		// Game
 		protected.POST("/games", gameHandler.CreateGame(hub))
@@ -65,6 +66,10 @@ func SetupRouter(cfg *config.Config, hub *ws.Hub) *gin.Engine {
 		// WS
 		protected.GET("/ws", ws.HandleWS(hub, cfg.JWTSecret))
 	}
+
+	// Health Routes
+	r.GET("/health", health.HealthCheck)
+	r.GET("/health/ws", health.WSHealthCheck)
 
 	return r
 }

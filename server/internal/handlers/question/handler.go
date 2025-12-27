@@ -20,7 +20,7 @@ func NewHandler(questionService *question.Service, quizService *quiz.Service) *H
 }
 
 func (h *Handler) AddQuestion(c *gin.Context) {
-	quizID := c.Param("quizId")
+	quizID := c.Param("id")
 	userID, _ := c.Get("userID")
 
 	if err := h.quizService.ValidateOwnership(quizID, uint(userID.(uint))); err != nil {
@@ -52,7 +52,7 @@ func (h *Handler) AddQuestion(c *gin.Context) {
 }
 
 func (h *Handler) GetQuizQuestions(c *gin.Context) {
-	quizID := c.Param("quizId")
+	quizID := c.Param("id")
 
 	questions, err := h.questionService.GetQuestionsByQuizID(quizID)
 	if err != nil {

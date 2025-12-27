@@ -11,6 +11,10 @@ func handleEvent(client *Client, hub *Hub, msg models.WSMessage) {
 	switch msg.Event {
 	case "join_game":
 		handleJoinGame(client, hub, msg.Data)
+	case "start_game":
+		handleStartGame(client, hub, msg.Data)
+	case "submit_answer":
+		handleSubmitAnswer(client, msg.Data)
 	}
 }
 

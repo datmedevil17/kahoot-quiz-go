@@ -10,6 +10,11 @@ func broadcastLeaderboard(room *Room) {
 	var leaderboard []models.LeaderboardEntry
 
 	for _, client := range room.Clients {
+		// Skip Host in leaderboard
+		if client.UserID == room.HostID {
+			continue
+		}
+
 		leaderboard = append(leaderboard, models.LeaderboardEntry{
 			Username: client.Username,
 			Score:    room.Scores[client.ID],
