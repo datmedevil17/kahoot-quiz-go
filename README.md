@@ -76,20 +76,35 @@ The easiest way to run the application is using Docker Compose.
 
 ### Server
 
-1.  Navigate to `server`:
+1.  **Start the Database**:
+    You need a PostgreSQL database running. You can use Docker for this:
+    ```bash
+    docker compose up -d db
+    ```
+
+2.  **Navigate to `server`**:
     ```bash
     cd server
     ```
-2.  Install dependencies:
+
+3.  **Install dependencies**:
     ```bash
     go mod download
     ```
-3.  Set up environment:
+
+4.  **Set up environment**:
     ```bash
     cp .env.example .env
     # Update .env with your local DB credentials if needed
+    # Default for docker-compose db:
+    # DB_HOST=localhost
+    # DB_PORT=5432
+    # DB_USER=postgres
+    # DB_PASSWORD=postgres
+    # DB_NAME=kahoot_quiz
     ```
-4.  Run the server:
+
+5.  **Run the server**:
     ```bash
     go run ./cmd/api
     ```
